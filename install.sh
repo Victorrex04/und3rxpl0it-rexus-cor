@@ -9,7 +9,7 @@ trap 'echo -e "\n\033[1;31m[!] Installation failed.\033[0m"; exit 1' ERR
 
 # PRIVATE AUTH (will not echo or log)
 GITHUB_USER="Victorrex04"  # << YOUR USERNAME
-GITHUB_PAT="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"  # << YOUR TOKEN
+GITHUB_PAT="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"  # << YOUR TOKEN
 
 echo -e "\n\033[1;34mREXUS NODE INSTALLATION\033[0m"
 echo -e "\033[1;36mOS: $(lsb_release -ds)\033[0m\n"
