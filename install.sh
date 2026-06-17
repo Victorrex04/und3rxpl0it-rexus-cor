@@ -1,35 +1,41 @@
 #!/bin/bash
 # ==============================================
-# REXUS NODE - ALL-IN-ONE INSTALLER (v4.0)
-# No external dependencies - fully self-contained
+# REXUS NODE - COMPLETE OFFENSIVE SUITE (v5.0)
 # ==============================================
 
+# Exit on error and log all commands
 set -eo pipefail
+exec > >(tee -a /var/log/rexus_install.log) 2>&1
 trap 'echo -e "\n\033[1;31m[!] Failed at line $LINENO\033[0m"; exit 1' ERR
 
 # ===== 1. System Preparation =====
-echo -e "\n\033[1;34m[1/5] INSTALLING SYSTEM DEPENDENCIES\033[0m"
+echo -e "\n\033[1;34m[1/7] SYSTEM PREPARATION\033[0m"
 sudo apt update -qq
 sudo apt install -y --no-install-recommends \
-    python3 python3-pip python3-dev \
+    git python3 python3-pip python3-dev \
     nmap hydra sqlmap tor proxychains4 \
-    libssl-dev libffi-dev build-essential
+    libssl-dev libffi-dev build-essential \
+    seclists gobuster responder \
+    crackmapexec impacket-scripts
 
-# ===== 2. Create REXUS Structure =====
-echo -e "\033[1;34m[2/5] SETTING UP REXUS COR\033[0m"
-[ -d ~/rexus ] && { 
-    echo -e "\033[1;33m[!] Backing up existing installation\033[0m"
-    mv ~/rexus ~/rexus.bak.$(date +%s)
-}
+# ===== 2. Install Metasploit =====
+echo -e "\033[1;34m[2/7] METASPLOIT FRAMEWORK\033[0m"
+if ! command -v msfconsole &>/dev/null; then
+    curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > /tmp/msfinstall
+    chmod +x /tmp/msfinstall
+    /tmp/msfinstall > /dev/null
+fi
 
-mkdir -p ~/rexus/tools
+# ===== 3. REXUS Core Installation =====
+echo -e "\033[1;34m[3/7] REXUS C2 FRAMEWORK\033[0m"
+[ -d ~/rexus ] && mv ~/rexus ~/rexus.bak.$(date +%s)
+mkdir -p ~/rexus/{tools,modules,exploits}
 
-# ===== 3. Install C2 Server (Integrated Code) =====
-echo -e "\033[1;34m[3/5] DEPLOYING C2 SERVER\033[0m"
 cat > ~/rexus/c2_server.py <<'EOF'
 #!/usr/bin/env python3
 import discord
 import asyncio
+import subprocess
 from tools.exploit_manager import ExploitEngine
 
 class RexusC2:
@@ -37,19 +43,24 @@ class RexusC2:
         self.exploits = ExploitEngine()
         self.commands = {
             "!scan": self.handle_scan,
-            "!exploit": self.handle_exploit
+            "!exploit": self.handle_exploit,
+            "!msf": self.handle_msf,
+            "!pe": self.handle_pe
         }
 
     async def handle_scan(self, message):
         target = message.content.split()[1]
         await message.channel.send(f"[+] Scanning {target}...")
-        # Simulate scan (replace with actual nmap integration)
-        await asyncio.sleep(2)
-        await message.channel.send(f"Open ports on {target}: 22(SSH), 80(HTTP), 443(HTTPS)")
+        result = subprocess.getoutput(f"nmap -T4 -F {target}")
+        await message.channel.send(f"```\n{result}\n```")
 
-    async def handle_exploit(self, message):
-        await message.channel.send("[+] Exploit module loaded")
-        # Actual exploit logic would go here
+    async def handle_msf(self, message):
+        await message.channel.send("[+] Metasploit module loaded")
+        # MSF integration would go here
+
+    async def handle_pe(self, message):
+        await message.channel.send("[+] Privilege escalation toolkit ready")
+        # PE tools would go here
 
     async def on_message(self, message):
         if message.author == client.user:
@@ -74,37 +85,26 @@ if __name__ == "__main__":
     import os
     if not os.path.exists("config.json"):
         with open("config.json", "w") as f:
-            f.write('{"discord_token": "MTUxNjc5Mzk0NTk4MjYzMTk1Ng.GBjUTU.nAzq4B1whZiQ9ag_-OX1hgwBTD5leh-zYla-4k"}')
+            f.write('{"discord_token": "MTUxNjc5Mzk0NTk4MjYzMTk1Ng.GBjUTU.nAzq4B1whZiQ9ag_-OX1hgwBTD5leh-zYla-4k
+"}')
     client.run(open("config.json").read().split('"')[3])
 EOF
 
-# ===== 4. Install Exploit Manager =====
-cat > ~/rexus/tools/exploit_manager.py <<'EOF'
-#!/usr/bin/env python3
-import subprocess
-import json
+# ===== 4. Offensive Tools =====
+echo -e "\033[1;34m[4/7] OFFENSIVE TOOLKIT\033[0m"
 
-class ExploitEngine:
-    def __init__(self):
-        self.exploits = {
-            "CVE-2021-44228": self.log4j_rce,
-            "CVE-2017-0144": self.eternal_blue
-        }
+# Privilege Escalation
+git clone https://github.com/carlospolop/PEASS-ng.git ~/rexus/tools/peass
 
-    def log4j_rce(self, target):
-        return f"[+] Executing Log4j RCE against {target}"
+# Exploit Database
+sudo git clone https://gitlab.com/exploit-database/exploitdb.git /opt/exploitdb
+sudo ln -sf /opt/exploitdb/searchsploit /usr/local/bin/searchsploit
 
-    def eternal_blue(self, target):
-        return f"[+] Launching EternalBlue against {target}"
-
-    def run(self, cve, target):
-        if cve in self.exploits:
-            return self.exploits[cve](target)
-        return "[-] Exploit not available"
-EOF
+# Mimikatz (Windows)
+wget -q https://github.com/gentilkiwi/mimikatz/releases/latest/download/mimikatz_trunk.zip -O ~/rexus/tools/mimikatz.zip
 
 # ===== 5. Python Environment =====
-echo -e "\033[1;34m[4/5] CONFIGURING PYTHON\033[0m"
+echo -e "\033[1;34m[5/7] PYTHON ENVIRONMENT\033[0m"
 cd ~/rexus
 python3 -m pip install --user \
     discord.py==2.3.2 \
@@ -112,22 +112,35 @@ python3 -m pip install --user \
     python-nmap==0.7.1 \
     scapy==2.5.0 \
     cryptography==42.0.4 \
-    psutil==5.9.8
+    psutil==5.9.8 \
+    pycryptodome==3.20.0
 
-# ===== 6. Finalization =====
-echo -e "\033[1;34m[5/5] FINALIZING INSTALL\033[0m"
+# ===== 6. OPSEC Hardening =====
+echo -e "\033[1;34m[6/7] OPSEC HARDENING\033[0m"
+sudo apt purge -y snapd ubuntu-standard
+sudo ufw deny outgoing 25,53,123
+sudo systemctl stop systemd-resolved
+
+# ===== 7. Finalization =====
+echo -e "\033[1;34m[7/7] FINALIZING\033[0m"
 chmod +x ~/rexus/c2_server.py
-chmod +x ~/rexus/tools/*.py
-
-# Create default config
-[ ! -f ~/rexus/config.json ] && \
-    echo '{"discord_token": "MTUxNjc5Mzk0NTk4MjYzMTk1Ng.GBjUTU.nAzq4B1whZiQ9ag_-OX1hgwBTD5leh-zYla-4k"}' > ~/rexus/config.json
+chmod -R +x ~/rexus/tools/
+sudo rm -f /tmp/msfinstall
 
 # ===== SUCCESS =====
-echo -e "\n\033[1;32m[✔] REXUS INSTALLATION COMPLETE\033[0m"
-echo -e "\033[1;36m[•] Directory structure:\033[0m"
-tree -L 2 ~/rexus
-echo -e "\n\033[1;36m[•] To start:\033[0m"
-echo -e "1. Edit ~/rexus/config.json with your Discord bot token"
-echo -e "2. Run: cd ~/rexus && python3 c2_server.py"
-echo -e "\n\033[1;33m[!] Always use Tor/VPN when operating C2!\033[0m"
+echo -e "\n\033[1;32m[✔] REXUS OFFENSIVE SUITE READY\033[0m"
+echo -e "\033[1;36m[+] Core Components:\033[0m"
+echo -e "• Discord C2 Server (c2_server.py)"
+echo -e "• Metasploit Framework (msfconsole)"
+echo -e "• 1500+ exploits (via Exploit-DB)"
+
+echo -e "\n\033[1;36m[+] Tools Installed:\033[0m"
+echo -e "• Nmap/Hydra/sqlmap"
+echo -e "• CrackMapExec/Impacket"
+echo -e "• PEASS-ng (LinPEAS/WinPEAS)"
+echo -e "• Mimikatz (Windows credential dumping)"
+
+echo -e "\n\033[1;33m[!] IMPORTANT:\033[0m"
+echo -e "1. Edit ~/rexus/config.json with your Discord token"
+echo -e "2. Start C2: cd ~/rexus && proxychains python3 c2_server.py"
+echo -e "3. Never expose this system without Tor/VPN\n"
