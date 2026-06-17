@@ -24,7 +24,7 @@ sudo apt install -y --no-install-recommends \
 # ===== 2. Clone REPO (Auth) =====
 echo -e "\033[1;32m[2/5] Cloning REXUS (secure)...\033[0m"
 git clone --quiet --depth 1 \
-    "https://${GITHUB_USER}:${GITHUB_PAT}@github.com/Victorrex04/und3rxpl0it-rexus-core.git" \
+    "https://${GITHUB_USER}:${GITHUB_PAT}@github.com/Victorrex04/und3rxpl0it-rexus-cor.git" \
     ~/rexus || { echo -e "\033[1;31m[!] Bad PAT/repo access.\033[0m"; exit 1; }
 
 # ===== 3. Metasploit =====
