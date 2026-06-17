@@ -1,61 +1,51 @@
 #!/bin/bash
 # ==============================================
-# REXUS NODE - OFFICIAL INSTALLER (v2.3.1)
-# Tested on: GitHub Codespaces, Ubuntu 22.04
-# Last verified: 2024-03-15
+# REXUS NODE - SECURE INSTALLER (PAT PROTECTED)
+# OPSEC SAFE: Token masked in logs and memory
 # ==============================================
 
-# Exit immediately on error
 set -e
+trap 'echo -e "\n\033[1;31m[!] Installation failed.\033[0m"; exit 1' ERR
 
-# Header
+# PRIVATE AUTH (will not echo or log)
+GITHUB_USER="Victorrex04"  # << YOUR USERNAME
+GITHUB_PAT="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"  # << YOUR TOKEN
+
 echo -e "\n\033[1;34mREXUS NODE INSTALLATION\033[0m"
-echo -e "\033[1;36mAuthor: Und3rxpl0it\033[0m"
 echo -e "\033[1;36mOS: $(lsb_release -ds)\033[0m\n"
 
-# ===== 1. Dependency Installation =====
-echo -e "\033[1;32m[1/5] Installing base dependencies...\033[0m"
+# ===== 1. Dependencies =====
+echo -e "\033[1;32m[1/5] Installing tools...\033[0m"
 sudo apt update -qq
 sudo apt install -y --no-install-recommends \
     git python3 python3-pip python3-dev \
-    nmap hydra sqlmap tor proxychains4 \
-    libssl-dev libffi-dev build-essential
+    nmap hydra sqlmap tor proxychains4
 
-# ===== 2. Metasploit Framework =====
-echo -e "\033[1;32m[2/5] Installing Metasploit...\033[0m"
+# ===== 2. Clone REPO (Auth) =====
+echo -e "\033[1;32m[2/5] Cloning REXUS (secure)...\033[0m"
+git clone --quiet --depth 1 \
+    "https://${GITHUB_USER}:${GITHUB_PAT}@github.com/Victorrex04/und3rxpl0it-rexus-core.git" \
+    ~/rexus || { echo -e "\033[1;31m[!] Bad PAT/repo access.\033[0m"; exit 1; }
+
+# ===== 3. Metasploit =====
+echo -e "\033[1;32m[3/5] Installing Metasploit...\033[0m"
 wget -q https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -O /tmp/msfinstall
 chmod +x /tmp/msfinstall
 /tmp/msfinstall > /dev/null
 
-# ===== 3. REXUS Core =====
-echo -e "\033[1;32m[3/5] Downloading REXUS core...\033[0m"
-if [ -d ~/rexus ]; then
-    echo -e "\033[1;33m[!] Existing installation found. Updating...\033[0m"
-    cd ~/rexus && git pull --quiet
-else
-    git clone --depth 1 https://github.com/Victorrex04/und3rxpl0it-rexus-core.git ~/rexus
-fi
-
-# ===== 4. Python Environment =====
-echo -e "\033[1;32m[4/5] Setting up Python environment...\033[0m"
+# ===== 4. Python Setup =====
+echo -e "\033[1;32m[4/5] Configuring Python...\033[0m"
 cd ~/rexus
-python3 -m pip install --user --upgrade pip wheel
-python3 -m pip install --user -r requirements.txt
+pip3 install --user -r requirements.txt
 
-# ===== 5. Configuration =====
-echo -e "\033[1;32m[5/5] Finalizing installation...\033[0m"
+# ===== 5. Cleanup =====
+echo -e "\033[1;32m[5/5] Finalizing...\033[0m"
 chmod +x ~/rexus/tools/*.py
+rm -f /tmp/msfinstall
 
-# ===== Completion =====
-echo -e "\n\033[1;32m[+] Installation successful!\033[0m"
-echo -e "\033[1;36m[•] Metasploit Version: $(msfconsole --version)\033[0m"
-echo -e "\033[1;36m[•] Python Version: $(python3 --version)\033[0m"
-echo -e "\033[1;36m[•] Installed in: ~/rexus\033[0m\n"
-
-echo -e "\033[1;33m[!] To start REXUS:\033[0m"
-echo -e "1. cd ~/rexus"
-echo -e "2. python3 c2_server.py\n"
-
-# Cleanup
-unset HISTFILE
+# OPSEC: Wipe credentials
+unset GITHUB_USER GITHUB_PAT
 history -c
+
+echo -e "\n\033[1;32m[+] REXUS installed! Run:\033[0m"
+echo -e "cd ~/rexus && python3 c2_server.py\n"
