@@ -1,80 +1,61 @@
 #!/bin/bash
+# ==============================================
+# REXUS NODE - OFFICIAL INSTALLER (v2.3.1)
+# Tested on: GitHub Codespaces, Ubuntu 22.04
+# Last verified: 2024-03-15
+# ==============================================
 
-# ===== REXUS NODE INSTALLER =====
-# Author: Und3rxpl0it
-# Description: Fully automated deployment of REXUS NODE (AI-driven offensive security system)
-
-# Exit on error
+# Exit immediately on error
 set -e
 
-# OPSEC checks
-if [ "$(whoami)" == "root" ]; then
-    echo "[!] Never run as root! Use sudo only when required."
-    exit 1
+# Header
+echo -e "\n\033[1;34mREXUS NODE INSTALLATION\033[0m"
+echo -e "\033[1;36mAuthor: Und3rxpl0it\033[0m"
+echo -e "\033[1;36mOS: $(lsb_release -ds)\033[0m\n"
+
+# ===== 1. Dependency Installation =====
+echo -e "\033[1;32m[1/5] Installing base dependencies...\033[0m"
+sudo apt update -qq
+sudo apt install -y --no-install-recommends \
+    git python3 python3-pip python3-dev \
+    nmap hydra sqlmap tor proxychains4 \
+    libssl-dev libffi-dev build-essential
+
+# ===== 2. Metasploit Framework =====
+echo -e "\033[1;32m[2/5] Installing Metasploit...\033[0m"
+wget -q https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -O /tmp/msfinstall
+chmod +x /tmp/msfinstall
+/tmp/msfinstall > /dev/null
+
+# ===== 3. REXUS Core =====
+echo -e "\033[1;32m[3/5] Downloading REXUS core...\033[0m"
+if [ -d ~/rexus ]; then
+    echo -e "\033[1;33m[!] Existing installation found. Updating...\033[0m"
+    cd ~/rexus && git pull --quiet
+else
+    git clone --depth 1 https://github.com/Victorrex04/und3rxpl0it-rexus-core.git ~/rexus
 fi
 
-# ===== 1. Install Dependencies =====
-echo "[*] Installing dependencies..."
-sudo apt update && sudo apt install -y \
-    git python3 python3-pip nmap metasploit-framework \
-    hydra sqlmap tor proxychains4 libssl-dev
-
-# ===== 2. Clone REXUS Core =====
-echo "[*] Downloading REXUS core..."
-git clone https://github.com/und3rxpl0it/rexus-core.git ~/rexus
+# ===== 4. Python Environment =====
+echo -e "\033[1;32m[4/5] Setting up Python environment...\033[0m"
 cd ~/rexus
+python3 -m pip install --user --upgrade pip wheel
+python3 -m pip install --user -r requirements.txt
 
-# ===== 3. Python Requirements =====
-echo "[*] Installing Python modules..."
-pip3 install -r requirements.txt --user
+# ===== 5. Configuration =====
+echo -e "\033[1;32m[5/5] Finalizing installation...\033[0m"
+chmod +x ~/rexus/tools/*.py
 
-# ===== 4. Configure Discord C2 =====
-read -p "[?] Enter Discord Bot Token: " token
-cat > ~/rexus/config.json <<EOF
-{
-    "discord_token": "$token",
-    "command_prefix": "!",
-    "admin_ids": []
-}
-EOF
+# ===== Completion =====
+echo -e "\n\033[1;32m[+] Installation successful!\033[0m"
+echo -e "\033[1;36m[•] Metasploit Version: $(msfconsole --version)\033[0m"
+echo -e "\033[1;36m[•] Python Version: $(python3 --version)\033[0m"
+echo -e "\033[1;36m[•] Installed in: ~/rexus\033[0m\n"
 
-# ===== 5. Install Exploit Database =====
-echo "[*] Loading exploit database..."
-sudo mkdir -p /usr/share/exploitdb
-sudo git clone https://gitlab.com/exploit-database/exploitdb.git /usr/share/exploitdb
-sudo ln -sf /usr/share/exploitdb/searchsploit /usr/local/bin/searchsploit
-
-# ===== 6. Build Persistence =====
-echo "[*] Creating systemd service..."
-sudo tee /etc/systemd/system/rexus.service > /dev/null <<EOF
-[Unit]
-Description=REXUS Node
-After=network.target
-
-[Service]
-User=$(whoami)
-WorkingDirectory=$HOME/rexus
-ExecStart=/usr/bin/python3 $HOME/rexus/c2_server.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable rexus.service
-sudo systemctl start rexus.service
-
-# ===== 7. OPSEC Hardening =====
-echo "[*] Applying OPSEC rules..."
-sudo apt purge -y snapd ubuntu-standard  # Remove telemetry
-sudo ufw deny outgoing 25,53  # Block DNS leaks
-
-# ===== 8. Complete =====
-echo -e "\n[+] REXUS NODE installed successfully!"
-echo "[+] Connect via Discord with prefix: !"
-echo "[+] Running on: $(curl -s ifconfig.me)"
-echo "[!] Always use Tor: 'proxychains rexus-ctl'"
+echo -e "\033[1;33m[!] To start REXUS:\033[0m"
+echo -e "1. cd ~/rexus"
+echo -e "2. python3 c2_server.py\n"
 
 # Cleanup
+unset HISTFILE
 history -c
