@@ -1,6 +1,0 @@
-echo "discord.py==2.3.2" > requirements.txt
-echo "requests==2.31.0" >> requirements.txt
-echo "python-nmap==0.7.1" >> requirements.txt
-git add requirements.txt
-git commit -m "Add cor requirements"
-git push
