@@ -20,7 +20,7 @@ sudo apt install -y --no-install-recommends \
     || echo -e "\033[1;33m[!] Some packages failed - continuing\033[0m"
 
 # ===== 2. Install REXUS Core =====
-echo -e "\033[1;34m[2/6] INSTALLING REXUS CORE\033[0m"
+echo -e "\033[1;34m[2/6] INSTALLING REXUS COR\033[0m"
 mkdir -p "$HOME/rexus/tools"
 
 # Main C2 Server
